@@ -2,6 +2,11 @@
 XES
 ===========
 
+To install:
+
+    pip install xes
+
+
 
 This is a simple library which has methods for generating XES files.
 With this library you will be able to take your raw event data and
