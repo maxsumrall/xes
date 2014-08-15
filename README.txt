@@ -2,6 +2,9 @@
 XES
 ===========
 
+This project is on Github: https://github.com/jsumrall/xes
+
+
 
 This is a simple library which has methods for generating XES files.
 With this library you will be able to take your raw event data and

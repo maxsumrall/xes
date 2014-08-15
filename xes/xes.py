@@ -1,126 +1,211 @@
 __author__ = 'Jonathan Sumrall'
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
-class XESDocument():
+class Log():
     def __init__(self):
-        self.header = """<?xml version="1.0" encoding="UTF-8" ?>
-<!-- This file has been generated with the OpenXES library. It conforms -->
-<!-- to the XML serialization of the XES standard for log storage and -->
-<!-- management. -->
-<!-- XES standard version: 1.0 -->
-<!-- OpenXES library version: 1.0RC7 -->
-<!-- OpenXES is available from http://www.openxes.org/ -->
-<log xes.version="1.0" xes.features="nested-attributes" openxes.version="1.0RC7" xmlns="http://www.xes-standard.org/">
-	<extension name="Lifecycle" prefix="lifecycle" uri="http://www.xes-standard.org/lifecycle.xesext"/>
-	<extension name="Organizational" prefix="org" uri="http://www.xes-standard.org/org.xesext"/>
-	<extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
-	<extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
-	<extension name="Semantic" prefix="semantic" uri="http://www.xes-standard.org/semantic.xesext"/>
-	<global scope="trace">
-		<string key="concept:name" value="__INVALID__"/>
-	</global>
-	<global scope="event">
-		<string key="concept:name" value="__INVALID__"/>
-		<string key="lifecycle:transition" value="complete"/>
-	</global>
-	"""
-        self.footer = "\n</log>"
+        self.CREATOR = "Python XES v1.2"
+        self.log = ET.Element("log")
+        self.log.set("xes.version", "1.0")
+        self.log.set("xmlns", "http://www.xes-standard.org")
+        self.log.set("xes.creator", self.CREATOR)
+
         self.attributes = []
         self.traces = []
+        self.extensions = []
+        self.classifiers = []
+        self.global_event_attributes = []
+        self.global_trace_attributes = []
+        self.infer_global_attributes = True
+        self.use_default_extensions = True
 
-    def addAttribute(self, attr):
-        self.attributes.append(attr)
 
-    def addTrace(self, trace):
-        self.traces.append(trace)
+    def add_global_event_attribute(self, attr):
+        self.global_event_attributes.append(attr)
 
-    def toXES(self):
-        xes = ""
-        xes += self.header
-        for attribute in self.attributes:
-            xes += attribute.toXES() + "\n"
+    def add_global_trace_attributes(self, attr):
+        self.global_trace_attributes.append(attr)
+
+    def add_attribute(self, attr):
+        if isinstance(attr, Attribute):
+            self.attributes.append(attr)
+
+    def add_trace(self, trace):
+        if isinstance(trace, Trace):
+            self.traces.append(trace)
+
+    def add_extension(self, extension):
+        if isinstance(extension, Extension):
+            self.extensions.append(extension)
+
+    def add_default_extensions(self):
+        self.extensions = [
+            Extension(name="Concept",
+                      prefix="concept",
+                      uri="http://www.xes-standard.org/concept.xesext"),
+	        Extension(name="Lifecycle",
+                      prefix="lifecycle",
+                      uri="http://www.xes-standard.org/lifecycle.xesext"),
+	        Extension(name="Time",
+                      prefix="time",
+                      uri="http://www.xes-standard.org/time.xesext"),
+	        Extension(name="Organizational",
+                      prefix="org",
+                      uri="http://www.xes-standard.org/org.xesext")
+        ]
+
+    def infer_attributes(self):
         for trace in self.traces:
-            xes += trace.toXES() + "\n"
-        xes += self.footer
+            for attr in trace.attributes:
+                contained = False
+                for global_attr in self.global_trace_attributes:
+                    if attr.key == global_attr.key:
+                        contained = True
+                if not contained:
+                    self.add_global_trace_attributes(
+                        Attribute(type=attr.type, key=attr.key, value="string")
+                    )
+            for event in trace.events:
+                for attr in event.attributes:
+                    contained = False
+                    for global_attr in self.global_event_attributes:
+                        if attr.key == global_attr.key:
+                            contained = True
+                    if not contained:
+                        self.add_global_event_attribute(
+                            Attribute(type=attr.type, key=attr.key, value="string")
+                        )
 
-        return xes
+    def build_log(self):
+        if len(self.classifiers) == 0:
+            print "XES Warning! Classifiers not set. \n"
+
+        if self.infer_global_attributes:
+            self.infer_attributes()
+
+        if self.use_default_extensions:
+            self.add_default_extensions()
+
+        for extension in self.extensions:
+            self.log.append(extension.xml)
+
+        globalTraceElement = ET.SubElement(self.log, "global")
+        globalTraceElement.set("scope", "trace")
+        for attr in self.global_trace_attributes:
+            globalTraceElement.append(attr.xml)
+
+        globalEventElement = ET.SubElement(self.log, "global")
+        globalEventElement.set("scope", "event")
+        for attr in self.global_event_attributes:
+            globalEventElement.append(attr.xml)
+
+        for classifier in self.classifiers:
+            self.log.append(classifier.xml)
+
+        self.attributes.append(Attribute(type="string", key="creator", value=self.CREATOR))
+        for attr in self.attributes:
+            self.log.append(attr.xml)
+
+
+        for trace in self.traces:
+            for event in trace.events:
+                event.build_event()
+            trace.build_trace()
+            self.log.append(trace.xml)
+
+
     def __str__(self):
-        return self.toXES()
+        self.build_log()
+        stuff = minidom.parseString(ET.tostring(self.log, "utf-8"))
+        c1 = stuff.createComment("Created by Python XES https://pypi.python.org/pypi/xes")
+        c2 = stuff.createComment("(c) Jonathan Sumrall - http://www.sumrall.nl")
+        stuff.insertBefore(c2,stuff.childNodes[0])
+        stuff.insertBefore(c1,stuff.childNodes[0])
 
-
-
+        return stuff.toprettyxml("  ")
 class Event():
     def __init__(self):
+        self.xml = ET.Element("event")
         self.attributes = []
 
-    def addAttribute(self, attr):
+    def add_attribute(self, attr):
         self.attributes.append(attr)
         return self
 
-    def toXES(self):
-        xes = "\t<event>\n"
-        for attr in self.attributes:
-            xes += "\t\t" + attr.toXES() + "\n"
-        xes += "\t</event>"
-        return xes
+    def build_event(self):
+        for attribute in self.attributes:
+            self.xml.append(attribute.xml)
+
     def __str__(self):
-        return self.toXES()
+        return ET.dump(self.xml)
 
 
 class Attribute():
-    def __init__(self, type="not set", key="not set", value="not set"):
-        self.type = str(type)
-        self.key = str(key)
-        self.value = str(value)
+    def __init__(self,
+                 type="not set",
+                 key="not set",
+                 value="not set"):
+        self.type = type
+        self.key = key
+        self.value = value
 
-    def toXES(self):
-        xes = "<" + self.type + " key=\"" + self.key + "\" value= \"" + self.value + "\"/>"
-        return xes
+        self.xml = ET.Element(self.type)
+        self.xml.set("key", key)
+        self.xml.set("value", value)
+
     def __str__(self):
-        return self.toXES()
+        return ET.dump(self.xml)
 
 
 class Trace():
     def __init__(self):
+        self.xml = ET.Element("trace")
         self.events = []
         self.attributes = []
 
-    def addAttribute(self, attr):
+    def add_attribute(self, attr):
         self.attributes.append(attr)
 
-    def addEvent(self, event):
+    def add_event(self, event):
         self.events.append(event)
 
-    def toXES(self):
-        xes = "<trace>\n"
-        for attr in self.attributes:
-            xes += attr.toXES() + "\n"
+    def build_trace(self):
         for event in self.events:
-            xes = xes + event.toXES() + "\n"
-        xes += "</trace>"
-        return xes
+            self.xml.append(event.xml)
+
     def __str__(self):
-        return self.toXES()
-
-
-def main():
-    doc = XESDocument()
-
-    trace1 = Trace()
-    trace1.addAttribute(Attribute("string","concept:name", "1"))
-    trace1.addEvent(Event().addAttribute(Attribute("string", "org:resource","Rose")))
-    trace1.addEvent(Event().addAttribute(Attribute("string","lifecycle:transition","start")))
-
-    trace2 = Trace()
-    trace2.addAttribute(Attribute("string", "concept:name", "2"))
-    trace2.addEvent(Event().addAttribute(Attribute("string", "org:resource","Bob")))
-    trace2.addEvent(Event().addAttribute(Attribute("string","lifecycle:transition","start")))
-
-    doc.addAttribute(Attribute("something", "or", "other"))
-    doc.addTrace(trace1)
-    doc.addTrace(trace2)
-
-    print doc
+        return ET.dump(self.xml)
 
 
 
+
+class Extension():
+    def __init__(self,
+                 name="not set",
+                 prefix="not set",
+                 uri="not set"):
+        self.name = name
+        self.prefix = prefix
+        self.uri = uri
+
+        self.xml = ET.Element("extension")
+        self.xml.set("name", name)
+        self.xml.set("prefix", prefix)
+        self.xml.set("uri", uri)
+
+    def __str__(self):
+        return ET.dump(self.xml)
+
+
+class Classifier():
+    def __init__(self, name="not set", keys="not set"):
+        self.name = name
+        self.keys = keys
+
+        self.xml = ET.Element("classifier")
+        self.xml.set("name", name)
+        self.xml.set("keys", keys)
+
+    def __str__(self):
+        return ET.dump(self.xml)
 
