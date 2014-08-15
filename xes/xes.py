@@ -3,6 +3,8 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
 class Log():
+    """ An XES log class for adding traces to.
+    """
     def __init__(self):
         self.CREATOR = "Python XES v1.2"
         self.log = ET.Element("log")
@@ -124,6 +126,9 @@ class Log():
 
         return stuff.toprettyxml("  ")
 class Event():
+    """
+    An event class. Add attributes to an event.
+    """
     def __init__(self):
         self.xml = ET.Element("event")
         self.attributes = []
@@ -141,6 +146,9 @@ class Event():
 
 
 class Attribute():
+    """
+    An Attribute object. Set the type, key, and value of the attribute and add this attribute to a trace or the log.
+    """
     def __init__(self,
                  type="not set",
                  key="not set",
@@ -158,6 +166,9 @@ class Attribute():
 
 
 class Trace():
+    """
+    A Trace which has Events.
+    """
     def __init__(self):
         self.xml = ET.Element("trace")
         self.events = []
@@ -180,6 +191,9 @@ class Trace():
 
 
 class Extension():
+    """
+    An Extension. Used for the Log.
+    """
     def __init__(self,
                  name="not set",
                  prefix="not set",
@@ -198,6 +212,9 @@ class Extension():
 
 
 class Classifier():
+    """
+    Classifier. Used by the Log. Should be the main attributes of events you want to classify by.
+    """
     def __init__(self, name="not set", keys="not set"):
         self.name = name
         self.keys = keys

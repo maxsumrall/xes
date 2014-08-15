@@ -16,27 +16,58 @@ i.e. the analysis of operational processes based on their event logs."
 
 As usual, examples are the best way to see what this does.
 
-Typical usage often looks like this::
+Example usage looks like this::
 
     #!/usr/bin/env python
 
     import xes
 
-    document = xes.XESDocument()
-    processed_traces = []
+    traces = [
+        [
+            {"concept:name" : "Register", "org:resource" : "Bob"},
+            {"concept:name" : "Negotiate", "org:resource" : "Sally"},
+            {"concept:name" : "Negotiate", "org:resource" : "Sally"},
+            {"concept:name" : "Sign", "org:resource" : "Dan"},
+            {"concept:name" : "Sendoff", "org:resource" : "Mary"}
+        ],
+        [
+            {"concept:name" : "Register", "org:resource" : "Bob"},
+            {"concept:name" : "Negotiate", "org:resource" : "Sally"},
+            {"concept:name" : "Sign", "org:resource" : "Dan"},
+            {"concept:name" : "Sendoff", "org:resource" : "Mary"}
+        ],
+        [
+            {"concept:name" : "Register", "org:resource" : "Bob"},
+            {"concept:name" : "Negotiate", "org:resource" : "Sally"},
+            {"concept:name" : "Sign", "org:resource" : "Dan"},
+            {"concept:name" : "Negotiate", "org:resource" : "Sally"},
+            {"concept:name" : "Sendoff", "org:resource" : "Mary"}
+        ],
+        [
+            {"concept:name" : "Register", "org:resource" : "Bob"},
+            {"concept:name" : "Sign", "org:resource" : "Dan"},
+            {"concept:name" : "Sendoff", "org:resource" : "Mary"}
+        ]
+    ]
 
-    for raw_trace in raw_data_traces:
-        xesTrace = xes.Trace()
-        for raw_event in raw_trace.events:
-            xesEvent = xes.Event()
-            xesEvent.attributes = [
-                xes.Attribute(type="string", key="lifecycle:transition", value="start"),
-                xes.Attribute(type="string", key="org:resource", value=raw_event["resource"]),
-                xes.Attribute(type="date", key="time:timestamp", value=raw_event["timestamp"]),
+
+    log = xes.Log()
+    for trace in traces:
+        t = xes.Trace()
+        for event in trace:
+            e = xes.Event()
+            e.attributes = [
+                xes.Attribute(type="string", key="concept:name", value=event["concept:name"]),
+                xes.Attribute(type="string", key="org:resource", value=event["org:resource"])
             ]
-        xesTrace.addEvent(xesEvent)
-        document.addTrace(xesTrace)
+            t.add_event(e)
+        log.add_trace(t)
+    log.classifiers = [
+        xes.Classifier(name="org:resource",keys="org:resource"),
+        xes.Classifier(name="concept:name",keys="concept:name")
+    ]
 
-    open("xeslog.xes","w").write(document.toXES())
+    open("example.xes", "w").write(str(log))
+
 
 
