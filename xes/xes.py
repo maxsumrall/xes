@@ -149,6 +149,7 @@ class Attribute():
     """
     An Attribute object. Set the type, key, and value of the attribute and add this attribute to a trace or the log.
     """
+
     def __init__(self,
                  type="not set",
                  key="not set",
@@ -159,7 +160,11 @@ class Attribute():
 
         self.xml = ET.Element(self.type)
         self.xml.set("key", key)
-        self.xml.set("value", value)
+        if self.type.lower() not in ('list', 'container'):
+            self.xml.set("value", value)
+
+    def nest_attribute(self, attribute):
+        self.xml.append(attribute.xml)
 
     def __str__(self):
         return ET.dump(self.xml)
