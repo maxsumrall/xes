@@ -181,6 +181,9 @@ class Trace():
         self.events.append(event)
 
     def build_trace(self):
+
+        for attribute in self.attributes:
+            self.xml.append(attribute.xml)
         for event in self.events:
             self.xml.append(event.xml)
 
