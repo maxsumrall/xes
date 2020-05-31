@@ -80,7 +80,7 @@ class Log():
 
     def build_log(self):
         if len(self.classifiers) == 0:
-            print "XES Warning! Classifiers not set. \n"
+            print("XES Warning! Classifiers not set. \n")
 
         if self.infer_global_attributes:
             self.infer_attributes()
