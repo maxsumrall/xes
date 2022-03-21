@@ -1,10 +1,13 @@
 __author__ = 'Jonathan Sumrall'
+
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+
 
 class Log():
     """ An XES log class for adding traces to.
     """
+
     def __init__(self):
         self.CREATOR = "Python XES v1.2"
         self.log = ET.Element("log")
@@ -20,7 +23,6 @@ class Log():
         self.global_trace_attributes = []
         self.infer_global_attributes = True
         self.use_default_extensions = True
-
 
     def add_global_event_attribute(self, attr):
         self.global_event_attributes.append(attr)
@@ -45,13 +47,13 @@ class Log():
             Extension(name="Concept",
                       prefix="concept",
                       uri="http://www.xes-standard.org/concept.xesext"),
-	        Extension(name="Lifecycle",
+            Extension(name="Lifecycle",
                       prefix="lifecycle",
                       uri="http://www.xes-standard.org/lifecycle.xesext"),
-	        Extension(name="Time",
+            Extension(name="Time",
                       prefix="time",
                       uri="http://www.xes-standard.org/time.xesext"),
-	        Extension(name="Organizational",
+            Extension(name="Organizational",
                       prefix="org",
                       uri="http://www.xes-standard.org/org.xesext")
         ]
@@ -80,7 +82,7 @@ class Log():
 
     def build_log(self):
         if len(self.classifiers) == 0:
-            print "XES Warning! Classifiers not set. \n"
+            print("XES Warning! Classifiers not set. \n")
 
         if self.infer_global_attributes:
             self.infer_attributes()
@@ -108,27 +110,28 @@ class Log():
         for attr in self.attributes:
             self.log.append(attr.xml)
 
-
         for trace in self.traces:
             for event in trace.events:
                 event.build_event()
             trace.build_trace()
             self.log.append(trace.xml)
 
-
     def __str__(self):
         self.build_log()
         stuff = minidom.parseString(ET.tostring(self.log, "utf-8"))
         c1 = stuff.createComment("Created by Python XES https://pypi.python.org/pypi/xes")
         c2 = stuff.createComment("(c) Jonathan Sumrall - http://www.sumrall.nl")
-        stuff.insertBefore(c2,stuff.childNodes[0])
-        stuff.insertBefore(c1,stuff.childNodes[0])
+        stuff.insertBefore(c2, stuff.childNodes[0])
+        stuff.insertBefore(c1, stuff.childNodes[0])
 
         return stuff.toprettyxml("  ")
+
+
 class Event():
     """
     An event class. Add attributes to an event.
     """
+
     def __init__(self):
         self.xml = ET.Element("event")
         self.attributes = []
@@ -174,6 +177,7 @@ class Trace():
     """
     A Trace which has Events.
     """
+
     def __init__(self):
         self.xml = ET.Element("trace")
         self.events = []
@@ -196,12 +200,11 @@ class Trace():
         return ET.dump(self.xml)
 
 
-
-
 class Extension():
     """
     An Extension. Used for the Log.
     """
+
     def __init__(self,
                  name="not set",
                  prefix="not set",
@@ -223,6 +226,7 @@ class Classifier():
     """
     Classifier. Used by the Log. Should be the main attributes of events you want to classify by.
     """
+
     def __init__(self, name="not set", keys="not set"):
         self.name = name
         self.keys = keys
@@ -233,4 +237,3 @@ class Classifier():
 
     def __str__(self):
         return ET.dump(self.xml)
-
